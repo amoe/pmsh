@@ -1,4 +1,5 @@
 struct state {
+    projectM             *pm;
     pthread_mutex_t      mutex;
     pa_threaded_mainloop *threaded_mainloop;
     pa_mainloop_api      *mainloop_api;

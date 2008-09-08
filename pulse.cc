@@ -19,7 +19,7 @@ pa_threaded_mainloop *init_pulseaudio(projectM *pm) {
     // FIXME: check all pointer returns for NULL
     global.threaded_mainloop = pa_threaded_mainloop_new();
 
-    //pa_threaded_mainloop_lock(global.threaded_mainloop);
+    pa_threaded_mainloop_lock(global.threaded_mainloop);
 
     global.mainloop_api = pa_threaded_mainloop_get_api(global.threaded_mainloop);
 
@@ -33,7 +33,7 @@ pa_threaded_mainloop *init_pulseaudio(projectM *pm) {
     if (ret != 0) die_pulse("cannot connect pulse context");
 
 
-    //pa_threaded_mainloop_unlock(global.threaded_mainloop);
+    pa_threaded_mainloop_unlock(global.threaded_mainloop);
 
     ret = pa_threaded_mainloop_start(global.threaded_mainloop);
     if (ret != 0) die_pulse("cannot start main loop");

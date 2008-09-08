@@ -1,100 +1,45 @@
 TODO
 
-makefile should use pkg-config
-please note that we are currently using configfile linked from projectM,
-though it is not declared in any pM header and is not part of the public
-interface
-good or bad?
-
-ERROR: ; should not indicate a comment in per-frame code.
+milkdrop-mode:
+; (semicolon) should not indicate a comment in per-frame code.
 
 inferior-pmsh:
 - add l that concats current filename 
 
 pmsh:
-- pulseaudio support
-  * algorithm:
-  * get first monitor source
-  * use pa_simple_new to hook it up with the dev parameter
-  * read data with pa_simple_read
-  * can be in any sample format.  match this to pcm16
-  * if blocking does not introduce large performance fuckups, ths will suffice
 - cmd 'd': add directory of presets
 - cmd 'n': next
 - cmd 'p': prev
 - pass events thru to milkdrop?
 
-20:43 < amoe> is it possible to use the pulseaudio API to read the final mixed output stream?
-20:47 < sjoerd> pulse has a monitor soruce on each sink
-20:48 < sjoerd> which gives you exactly the stream going to the sink
-20:48 < amoe> i would need to use the async api for that?
-20:52 < amoe> aha, pa_sink_info.monitor_source
-21:01 -!- ensonic [n=ensonic@pdpc/supporter/active/ensonic] has quit ["Leaving"]
-21:13 < amoe> ahh, here's what i do: somehow get the name of the monitor source, then i can pass it as
-              the device parameter to either pa_simple_new() or pa_simple_connect_record()
-21:13 < amoe> nifty
-21:14 < amoe> so i probably can use the simple api, if it will get bytes fast enough
+bugs
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-EMACS REGEXES
-
-x
-
-M
-x=0.9
-
-N
-wave_x=0.9
-x_foo=1
-
-
-"\\([_[:alnum:]]\\|\\`\\)"
-
-
-BUGS:
-
-* Hard lock - able to press power button
-  This is the most serious, no idea what causes it
-* Segfault at exit
-  Incorrect locking?
-* Xlib: unexpected async reply (sequence 0x7d)!
-  Incorrect locking?
-
-Can I trigger any of these with the lock held in cleanup()?
+16:58 < amoe> bamf
+16:58 < amoe> i know almost nothing about gdb
+16:58 < amoe> stepping over my code managed to hard lock my whole system :)
+16:59 < amoe> wasn't a pulseaudio call though
+16:59 < amoe> anyway, does my pulseaudio need to be compiled with debugging
+              symbols to be able to tell which syscall it's in?
+17:01 < amoe> would probably be useful to have a debug version anyway, but last
+              time i tried to compile pa something failed badly (can't remember
+              what)
+17:02 < amoe> i ran strace on it and the hang seems to happen at futex().  but
+              that's probably not useful
+17:04 < amoe> one more thing: i deactivated the worker thread and could still
+              reproduce the hang.  worker thread enabled, it happens every
+              time; disabled, it happens about every 5 times
+17:05 < amoe> (that is, 4 times it'll get the lock immediately, 1 time it'll
+              hang and require ctrl-\)
+17:10 < amoe> well, just in case i've done it right:
+17:10 < amoe> i've stepped over the hang now in gdb
+17:10 < amoe> pressed ctrl-C
+17:10 < amoe> i'll paste the output now
+17:12 < amoe> http://paste.lisp.org/display/66496
+17:13 < amoe> if gdb normally shows syscalls even without debug symbols, i can
+              confirm that no threads are in poll(), since absolutely no info
+              is shown at all :)
+17:18 < amoe> aside: if i do want to build PA with debug symbols, how do i do
+              that?  can't see anything in ./configure --help
+17:24 < coling> amoe, check the bootstrap file.. it's a matter of passing the
+                right cflags
+17:27 < amoe> cheers coling, will do

@@ -32,13 +32,15 @@ int main(int argc, char **argv) {
     
     init_sdl(cfg);
     pm = init_projectm(cfg);
+    // fixme: duh
+    global.pm = pm;
+    
     pa = init_pulseaudio(pm);
 
-
     pthread_create(&renderer, NULL, render, pm);
-
-    obey(pm);
     
+    obey(pm);
+
     cleanup();
 
     return 0;
@@ -156,6 +158,7 @@ void handle_event() {
     while (SDL_PollEvent(&evt)) {
         switch (evt.type) {
             case SDL_QUIT:
+                cleanup();
                 exit(0);
             default:
                 // eat this event
@@ -226,47 +229,67 @@ void fatal() {
     exit(1);
 }
 
+// Caution:
+// The order of cleaning stuff up is _very_ sensitive.
+// Minor tweaks cause deadlocks, segfaults, X errors, double frees, pretty much
+// anything you can imagine.
 void cleanup() {
-    // First, clean up all pulse business, starting with the stream
     int ret;
 
-    // This freezes the whole program.  Why????  Where is it blocking?
-    // NB!!!! problem only occurs when PA is running & music is playing!
-    // Otherwise the lock is fine
+    // segfault?
+    //delete global.pm;
+
+    // WARNING: this lock MUST be released before obtaining the lock on the
+    // mainloop, otherwise there's an extremely difficult to detect deadlock
+    // with cb_stream_read().
+
+    xunlock(&(global.mutex));
+
+    // This can take a few seconds, don't despair
+    puts("requesting lock");
     pa_threaded_mainloop_lock(global.threaded_mainloop);
     puts("got lock");
-    pa_threaded_mainloop_unlock(global.threaded_mainloop);
+    //pa_threaded_mainloop_unlock(global.threaded_mainloop);
 
-/*
     if (global.stream) {
+        puts("disconnecting & unreffing stream");
         ret = pa_stream_disconnect(global.stream);
         if (ret != 0)  die_pulse("cannot disconnect pulse stream");
         pa_stream_unref(global.stream);
     }
 
+    // Once stream is DCed, cb_stream_read() will no longer be called.  So it's
+    // safe to do the following and disregard the lock
+    
     // Something here causes a segfault, no idea what
     // Could it be because this is being run from the original thread?
     // Maybe we need to lock the PA objects first or summat
     if (global.context) {
+        puts("disconnecting context");
         pa_context_disconnect(global.context);
+        puts("unreffing context");
         pa_context_unref(global.context);
     }
     
-
     if (global.mainloop_api) {
+        puts("requesting quit from api");
         global.mainloop_api->quit(global.mainloop_api, 0);
     }
 
+    puts("unlocking mainloop");
     pa_threaded_mainloop_unlock(global.threaded_mainloop);
 
+    puts("stopping mainloop");
     if (global.threaded_mainloop) {
         pa_threaded_mainloop_stop(global.threaded_mainloop);
     }
 
+
     pthread_mutex_destroy(&(global.mutex));
-    
     SDL_Quit();
-*/
+
+    puts("deleting projectm instance");
+    delete global.pm;
 }
 
 // FIXME: needs to be rewritten in C++ style
