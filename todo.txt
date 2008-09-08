@@ -1,0 +1,100 @@
+TODO
+
+makefile should use pkg-config
+please note that we are currently using configfile linked from projectM,
+though it is not declared in any pM header and is not part of the public
+interface
+good or bad?
+
+ERROR: ; should not indicate a comment in per-frame code.
+
+inferior-pmsh:
+- add l that concats current filename 
+
+pmsh:
+- pulseaudio support
+  * algorithm:
+  * get first monitor source
+  * use pa_simple_new to hook it up with the dev parameter
+  * read data with pa_simple_read
+  * can be in any sample format.  match this to pcm16
+  * if blocking does not introduce large performance fuckups, ths will suffice
+- cmd 'd': add directory of presets
+- cmd 'n': next
+- cmd 'p': prev
+- pass events thru to milkdrop?
+
+20:43 < amoe> is it possible to use the pulseaudio API to read the final mixed output stream?
+20:47 < sjoerd> pulse has a monitor soruce on each sink
+20:48 < sjoerd> which gives you exactly the stream going to the sink
+20:48 < amoe> i would need to use the async api for that?
+20:52 < amoe> aha, pa_sink_info.monitor_source
+21:01 -!- ensonic [n=ensonic@pdpc/supporter/active/ensonic] has quit ["Leaving"]
+21:13 < amoe> ahh, here's what i do: somehow get the name of the monitor source, then i can pass it as
+              the device parameter to either pa_simple_new() or pa_simple_connect_record()
+21:13 < amoe> nifty
+21:14 < amoe> so i probably can use the simple api, if it will get bytes fast enough
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+EMACS REGEXES
+
+x
+
+M
+x=0.9
+
+N
+wave_x=0.9
+x_foo=1
+
+
+"\\([_[:alnum:]]\\|\\`\\)"
+
+
+BUGS:
+
+* Hard lock - able to press power button
+  This is the most serious, no idea what causes it
+* Segfault at exit
+  Incorrect locking?
+* Xlib: unexpected async reply (sequence 0x7d)!
+  Incorrect locking?
+
+Can I trigger any of these with the lock held in cleanup()?

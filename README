@@ -1,0 +1,79 @@
+IMPORTANT!!!
+----------------------------
+
+On my system there is a rare but present bug that LOCKS MY ENTIRE SYSTEM[*].
+It only occurs when exiting pmsh with the 'x' command.
+It is intermittent.  I have no idea if it's caused by my code, projectm,
+pulseaudio, my laptop, my video card, X.
+I'd estimate its frequency at 1/100 runs (not easy to reproduce, but not exactly
+uncommon either).
+So PLEASE BEWARE when using this code, save everything you have running.
+If you do experience this bug, please email me immediately!
+
+[*]: Not quite true: the whole of X locks up, no mouse, no ctrl-alt-backspace,
+but pressing the power button on my laptop causes it to shut down cleanly, or so
+it seems - it switches itself off after ~30 seconds.
+
+With that said...
+
+Entire trunk cut out of paranoia in case I break anything
+Code goes in this dir
+Needs CMakeLists and suchlike
+
+
+HOW TO BUILD
+------------
+
+make -f pmsh.mk
+
+You need to be in the source directory at the moment, until I get CMakeLists set
+up properly
+
+HOW TO USE THE EMACS MODE
+-------------------------
+
+M-x load-file
+type path to milkdrop-mode.el
+load .milk file
+M-x milkdrop-mode
+
+will eventually be streamlined and given instructions to autoload
+
+
+HOW TO USE INFERIOR MODE
+------------------------
+First, either define pmsh-program-name in your .emacs, or modify it in
+inferior-pmsh-mode.el.  needs to be the path to the pmsh binary
+
+M-x load-file
+type path to inferior-pmsh-mode.el
+M-x run-pmsh
+
+Now you can send two commands from your preset buffer
+(NB not *pmsh* at present):
+C-c ; r: reload preset from file
+C-c ; x: exit
+
+Enjoy ;)
+
+Pulse issues
+------------
+
+Pulse seems to work quite badly on my system.
+However, I think it's because pmsh is so slow, which is caused by a graphics
+driver problem, not this code.
+Therefore, a properly configured projectM shouldn't have this issue.
+To test it:
+
+First, kill any pulseaudio server you have running.
+Start up one terminal.
+Run 'pulseaudio -C'
+
+Start up your PA-enabled player and start playing music.
+
+Start up another terminal.
+Run pmsh.
+
+Now look at the first terminal, does it display any errors?
+If not, all should be well.
+On my system it says "Failed to push data into output queue." loads of times.
