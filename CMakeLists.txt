@@ -1,7 +1,24 @@
+# pmsh.cmk
+# TODO: add emacs machinery
+
 PROJECT(projectM-emacs)
 
-ADD_EXECUTABLE(pmsh projectM-test.cpp         sdltoprojectM.h video_init.cpp ConfigFile.h ConfigFile.cpp getConfigFilename.cpp getConfigFilename.h)
+ADD_EXECUTABLE(
+  pmsh pmsh.cc pmsh.hh pulse.cc pulse.hh ConfigFile.h ConfigFile.cpp
+)
 
+INCLUDE(FindPkgConfig.cmake)
+
+FIND_PACKAGE(OpenGL)
+FIND_PACKAGE(SDL)
+
+pkg_search_module(LIBPULSE REQUIRED libpulse>=0.9.5)
+
+if (LIBPULSE_FOUND)
+MESSAGE(STATUS "[projectM-pulseaudio] pulse audio detected.")
+else (LIBPULSE_FOUND)
+MESSAGE(FATAL_ERROR "ERROR: Pulse Audio is NOT found. Please install pulse audio 0.9.8 or greater from www.pulseaudio.org.")
+endif(LIBPULSE_FOUND)
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 	pkg_search_module(LIBPROJECTM REQUIRED libprojectM)
@@ -20,9 +37,11 @@ elseif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    set(PROJECTM_LINK ${LIBPROJECTM_LDFLAGS})
 endif (${CMAKE_PROJECT_NAME} MATCHES "PROJECTM_ROOT")
 
-INCLUDE_DIRECTORIES(${PROJECTM_INCLUDE} ${SDL_INCLUDE_DIR})
-LINK_DIRECTORIES(${PROJECTM_LINK})
+INCLUDE_DIRECTORIES(
+  ${PROJECTM_INCLUDE} ${SDL_INCLUDE_DIR} ${LIBPULSE_INCLUDEDIR}
+)
+LINK_DIRECTORIES(${PROJECTM_LINK} ${LIBPULSE_LDFLAGS})
 
-TARGET_LINK_LIBRARIES(pmsh projectM ${SDL_LIBRARY})
+TARGET_LINK_LIBRARIES(pmsh projectM ${SDL_LIBRARY} pulse)
 
-INSTALL(TARGETS projectM-test DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+INSTALL(TARGETS pmsh DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
