@@ -15,9 +15,7 @@
 #include "ConfigFile.h" // local version
 
 char binary_name[] = "pmsh";
-
-// Include order: C headers, C++ headers, lib headers, project headers
-
+std::string config_path;
 state global;
 
 int main(int argc, char **argv) {
@@ -26,7 +24,8 @@ int main(int argc, char **argv) {
     pa_threaded_mainloop *pa;
     config cfg;
 
-    cfg = read_config();
+    config_path = find_config();
+    cfg = read_config(config_path);
 
     pthread_mutex_init(&(global.mutex), NULL);
     
@@ -192,9 +191,9 @@ void init_sdl(config cfg) {
     SDL_WM_SetCaption("pmsh", NULL);
 }
 
-config read_config() {
+config read_config(std::string path) {
     config ret;
-    ConfigFile cf(PMSH_CONFIG_PATH);
+    ConfigFile cf(path);
 
     ret.width  = cf.read<int>("Window Width");
     ret.height = cf.read<int>("Window Height");
@@ -202,10 +201,34 @@ config read_config() {
     return ret;
 }
 
+std::string find_config() {
+    char *home = getenv("HOME");
+    std::string etc_path(home), dot_path(home);
+
+    etc_path.append("/etc/pmsh.inp");
+    dot_path.append("/.pmsh.inp");
+
+    if (file_exists(etc_path))
+        return etc_path;
+    else
+        return dot_path;
+}
+
+bool file_exists(std::string path) {
+    std::ifstream input;
+    bool ret;
+
+    input.open(path.c_str());
+    ret = (bool) input;
+    input.close();
+
+    return ret;
+}
+
 projectM *init_projectm(config cfg) {
     projectM *ret;
 
-    ret = new projectM(PMSH_CONFIG_PATH, 0);
+    ret = new projectM(config_path, 0);
     
     return ret;
 }

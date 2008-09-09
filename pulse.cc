@@ -7,12 +7,7 @@
 #include "pulse.hh"
 
 
-/*
-  "pa_threaded_mainloop_lock() may not be called inside the event loop thread.
-  Events that are dispatched from the event loop thread are executed with this
-  lock held."
-*/
-
+// FIXME: return value is useless
 pa_threaded_mainloop *init_pulseaudio(projectM *pm) {
     int ret;
 
@@ -37,9 +32,6 @@ pa_threaded_mainloop *init_pulseaudio(projectM *pm) {
 
     ret = pa_threaded_mainloop_start(global.threaded_mainloop);
     if (ret != 0) die_pulse("cannot start main loop");
-
-
-    
 
   return global.threaded_mainloop;
 }
@@ -98,7 +90,6 @@ void cb_stream_read(pa_stream *p, size_t bytes, void *userdata) {
     const void *data;
     int ret;
 
-    // FIXME: check returns
     ret = pa_stream_peek(p, &data, &bytes);
     if (ret != 0) die_pulse("cannot peek pulse stream data");
 

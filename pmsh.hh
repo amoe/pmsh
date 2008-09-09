@@ -1,6 +1,3 @@
-// Mutex accessible through both threads, to lock the projectM pointer
-extern pthread_mutex_t mtx;
-
 struct config {
     int width;
     int height;
@@ -20,16 +17,18 @@ projectM *init_projectm(config cfg);
 void cleanup();
 void init_projectm();
 void init_sdl(config cfg);
-config read_config();
+config read_config(std::string path);
 void debug_info(projectM *pm);
 void handle_event();
 void add_pcm(projectM *pm);
+
+bool file_exists(std::string path);
+std::string find_config();
 
 void warn(const char *format, ...);
 void die(const char *format, ...);
 char *append_error_conversion(char *format);
 
 
-#define PMSH_CONFIG_PATH "/home/amoe/etc/pmsh.cf"
 #define TEST_PRESET      "/home/amoe/milkdrop/test.milk"
 

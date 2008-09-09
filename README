@@ -19,9 +19,12 @@ If you don't experience it, email me as well!
 but pressing the power button on my laptop causes it to shut down cleanly, or so
 it seems - it switches itself off after ~30 seconds.
 
+FIRST
+-----
+Copy your favourite projectM config to either ~/etc/pmsh.inp or ~/.pmsh.inp,
+whatever floats your boat.
 
-
-HOW TO USE THE EMACS MODE
+TO USE THE EMACS MODE
 -------------------------
 
 M-x load-file

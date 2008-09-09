@@ -14,32 +14,4 @@ pmsh:
 
 bugs
 
-16:58 < amoe> bamf
-16:58 < amoe> i know almost nothing about gdb
-16:58 < amoe> stepping over my code managed to hard lock my whole system :)
-16:59 < amoe> wasn't a pulseaudio call though
-16:59 < amoe> anyway, does my pulseaudio need to be compiled with debugging
-              symbols to be able to tell which syscall it's in?
-17:01 < amoe> would probably be useful to have a debug version anyway, but last
-              time i tried to compile pa something failed badly (can't remember
-              what)
-17:02 < amoe> i ran strace on it and the hang seems to happen at futex().  but
-              that's probably not useful
-17:04 < amoe> one more thing: i deactivated the worker thread and could still
-              reproduce the hang.  worker thread enabled, it happens every
-              time; disabled, it happens about every 5 times
-17:05 < amoe> (that is, 4 times it'll get the lock immediately, 1 time it'll
-              hang and require ctrl-\)
-17:10 < amoe> well, just in case i've done it right:
-17:10 < amoe> i've stepped over the hang now in gdb
-17:10 < amoe> pressed ctrl-C
-17:10 < amoe> i'll paste the output now
-17:12 < amoe> http://paste.lisp.org/display/66496
-17:13 < amoe> if gdb normally shows syscalls even without debug symbols, i can
-              confirm that no threads are in poll(), since absolutely no info
-              is shown at all :)
-17:18 < amoe> aside: if i do want to build PA with debug symbols, how do i do
-              that?  can't see anything in ./configure --help
-17:24 < coling> amoe, check the bootstrap file.. it's a matter of passing the
-                right cflags
-17:27 < amoe> cheers coling, will do
+pM spews a non-NLed 'cleanup' to the terminal on exit
