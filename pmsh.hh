@@ -22,6 +22,8 @@ void debug_info(projectM *pm);
 void handle_event();
 void add_pcm(projectM *pm);
 
+void cmd_dir(projectM *pm, std::string path);
+
 bool file_exists(std::string path);
 std::string find_config();
 

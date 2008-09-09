@@ -1,17 +1,14 @@
 TODO
 
-milkdrop-mode:
-; (semicolon) should not indicate a comment in per-frame code.
-
-inferior-pmsh:
-- add l that concats current filename 
-
 pmsh:
 - cmd 'd': add directory of presets
 - cmd 'n': next
 - cmd 'p': prev
 - pass events thru to milkdrop?
+- occasional segfault on exit
 
 bugs
 
 pM spews a non-NLed 'cleanup' to the terminal on exit
+
+add tests for simple functions to test.cc

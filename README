@@ -19,10 +19,19 @@ If you don't experience it, email me as well!
 but pressing the power button on my laptop causes it to shut down cleanly, or so
 it seems - it switches itself off after ~30 seconds.
 
+
+REQUIREMENTS
+------------
+emacs 22 (not checked)
+pulseaudio
+libprojectM
+SDL
+
 FIRST
 -----
 Copy your favourite projectM config to either ~/etc/pmsh.inp or ~/.pmsh.inp,
 whatever floats your boat.
+The code builds with cmake, ignore pmsh.mk
 
 TO USE THE EMACS MODE
 -------------------------

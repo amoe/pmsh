@@ -69,6 +69,7 @@ std::string ask() {
     return line;
 }
 
+// fixme: switch on line.at(0) skipping whitespace
 void act(projectM *pm, std::string line) {
     if (line.empty()) {
         // just eat the line
@@ -86,8 +87,21 @@ void act(projectM *pm, std::string line) {
             warn("command 'l' requires an argument");
     }
 
+    else if (line == "o") {
+        std::cout << "toggling lock" << std::endl;
+        pm->setPresetLock(!pm->isPresetLocked());
+    }
+
+    else if (line.at(0) == 'd') {
+        if (line.size() > 2)
+            cmd_dir(pm, line.substr(2));
+        else
+            warn("command 'd' requires an argument");
+    }
+
     else if (line == "r")
         cmd_reload(pm);
+
             
     else if (line == "c")
         pm->clearPlaylist();
@@ -105,6 +119,24 @@ void cmd_load(projectM *pm, std::string path) {
     int idx = pm->addPresetURL(path, "current", 3);
     pm->selectPreset(idx);
     pm->setPresetLock(true);
+}
+
+void cmd_dir(projectM *pm, std::string path) {
+    DIR *dir = opendir(path.c_str());
+    struct dirent *de;
+    int ret;
+
+    if (!dir) die("cannot open directory: %s", strerror(errno));
+
+    while ((de = readdir(dir)) != NULL) {
+        std::string abs = path + "/" + de->d_name;
+        std::cout << abs << std::endl;
+
+        pm->addPresetURL(abs, "cmd_dir", 3);
+    }
+
+    ret = closedir(dir);
+    if (ret != 0) die("cannot close directory: %s", strerror(errno));
 }
  
 void cmd_reload(projectM *pm) {
@@ -259,9 +291,6 @@ void fatal() {
 void cleanup() {
     int ret;
 
-    // segfault?
-    //delete global.pm;
-
     // WARNING: this lock MUST be released before obtaining the lock on the
     // mainloop, otherwise there's an extremely difficult to detect deadlock
     // with cb_stream_read().
@@ -272,7 +301,6 @@ void cleanup() {
     puts("requesting lock");
     pa_threaded_mainloop_lock(global.threaded_mainloop);
     puts("got lock");
-    //pa_threaded_mainloop_unlock(global.threaded_mainloop);
 
     if (global.stream) {
         puts("disconnecting & unreffing stream");
@@ -281,12 +309,9 @@ void cleanup() {
         pa_stream_unref(global.stream);
     }
 
-    // Once stream is DCed, cb_stream_read() will no longer be called.  So it's
-    // safe to do the following and disregard the lock
+    // We SHOULD be able to delete projectM here, since cb_stream_read() is no
+    // longer called.  But it doesn't work that way in reality
     
-    // Something here causes a segfault, no idea what
-    // Could it be because this is being run from the original thread?
-    // Maybe we need to lock the PA objects first or summat
     if (global.context) {
         puts("disconnecting context");
         pa_context_disconnect(global.context);

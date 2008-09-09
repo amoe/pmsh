@@ -11,25 +11,10 @@
 (require 'milkdrop-mode)
 (require 'comint)
 
-(defvar pmsh-program-name "/usr/local/bin/pmsh")
+(defvar pmsh-program-name "pmsh")
 
-;; (defvar inferior-pmsh-mode-map
-;;   (let ((m (copy-keymap comint-mode-map)))
-;;     (define-key m (kbd "C-x C-r") 'pmsh-send-reload)
-;;     m))
-
-; Since we want to have bindings in both the milkdrop-mode map AND the pmsh mode
-; map, it's best to write a function taking the map as a parameter and defining
-; all the keys
-
-    
-;; (unless inferior-pmsh-mode-map
-;;   (setq inferior-pmsh-mode-map (copy-keymap comint-mode-map))
-
-;;   ; FIXME: this key should be defined in milkdrop-mode
-;;   (define-key inferior-pmsh-mode-map (kbd "C-x C-k") 'pmsh-send-reload))
-
-; Insert keybindings into milkdrop-mode
+; Insert keybindings into milkdrop-mode.  FIXME: bindings should be present in
+; this mode as well
 (define-derived-mode inferior-pmsh-mode comint-mode "Inferior pmsh"
   "Inferior pmsh interaction"
   (setq comint-prompt-regexp "^> *")
@@ -40,6 +25,7 @@
 
 (define-key milkdrop-mode-map (kbd "C-c ; r") 'pmsh-send-reload)
 (define-key milkdrop-mode-map (kbd "C-c ; x") 'pmsh-send-exit)
+(define-key milkdrop-mode-map (kbd "C-c ; l") 'pmsh-send-load)
 
 (defun pmsh-proc ()
   (get-buffer-process "*pmsh*"))
@@ -52,6 +38,13 @@
 (defun pmsh-send-reload ()
   (interactive)
   (comint-send-string (pmsh-proc) "r\n"))
+
+(defun pmsh-send-load ()
+  (interactive)
+  (comint-send-string (pmsh-proc)
+    (concat "l "
+            (expand-file-name (read-file-name "Preset path: "))
+            "\n")))
 
 (defun run-pmsh ()
   "Run inferior pmsh"

@@ -7,6 +7,11 @@ ADD_EXECUTABLE(
   pmsh pmsh.cc pmsh.hh pulse.cc pulse.hh ConfigFile.h ConfigFile.cpp
 )
 
+ADD_EXECUTABLE(test test.cc)
+
+ENABLE_TESTING()
+ADD_TEST(test test)
+
 INCLUDE(FindPkgConfig.cmake)
 
 FIND_PACKAGE(OpenGL)
