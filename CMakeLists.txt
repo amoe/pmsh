@@ -4,7 +4,9 @@
 PROJECT(projectM-emacs)
 
 ADD_EXECUTABLE(
-  pmsh pmsh.cc pmsh.hh pulse.cc pulse.hh ConfigFile.h ConfigFile.cpp
+  pmsh
+  pmsh.cc pmsh.hh command.cc command.hh pulse.cc pulse.hh
+  ConfigFile.cpp ConfigFile.h
 )
 
 ADD_EXECUTABLE(test test.cc)

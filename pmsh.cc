@@ -11,6 +11,7 @@
 #include <SDL/SDL.h>
 
 #include "pmsh.hh"
+#include "command.hh"
 #include "pulse.hh"
 #include "ConfigFile.h" // local version
 
@@ -18,6 +19,12 @@ char binary_name[] = "pmsh";
 std::string config_path;
 state global;
 
+// FIXME:
+// main() needs to be in a separate file, because if we want to run unit tests
+// for the routines in pmsh.cc, we will need to be able to define main() and
+// also link to pmsh.o.  possibly rename this function pmsh_main() and call that
+// from main.c.
+// We could also use a preprocessor directive HAVE_TEST to do this
 int main(int argc, char **argv) {
     projectM *pm;
     pthread_t renderer;
@@ -92,6 +99,14 @@ void act(projectM *pm, std::string line) {
         pm->setPresetLock(!pm->isPresetLocked());
     }
 
+    else if (line == "n") {
+        cmd_next(pm);
+    }
+    
+    else if (line == "p") {
+        cmd_prev(pm);
+    }
+
     else if (line.at(0) == 'd') {
         if (line.size() > 2)
             cmd_dir(pm, line.substr(2));
@@ -112,59 +127,16 @@ void act(projectM *pm, std::string line) {
     else warn("unrecognized command");
 }
 
-void cmd_load(projectM *pm, std::string path) {
-    std::cout << "Loading file: " << path << std::endl;
-
-    // must use 3 or crash
-    int idx = pm->addPresetURL(path, "current", 3);
-    pm->selectPreset(idx);
-    pm->setPresetLock(true);
-}
-
-void cmd_dir(projectM *pm, std::string path) {
-    DIR *dir = opendir(path.c_str());
-    struct dirent *de;
-    int ret;
-
-    if (!dir) die("cannot open directory: %s", strerror(errno));
-
-    while ((de = readdir(dir)) != NULL) {
-        std::string abs = path + "/" + de->d_name;
-        std::cout << abs << std::endl;
-
-        pm->addPresetURL(abs, "cmd_dir", 3);
-    }
-
-    ret = closedir(dir);
-    if (ret != 0) die("cannot close directory: %s", strerror(errno));
-}
- 
-void cmd_reload(projectM *pm) {
+void move(projectM *pm, int increment) {
     unsigned int idx;
-    bool not_empty = pm->selectedPresetIndex(idx);
-    
-    if (not_empty) {
-        pm->selectPreset(idx);
+    bool valid = pm->selectedPresetIndex(idx);
+
+    if (valid) {
+        pm->selectPreset(idx + increment);
     } else {
-        warn("cannot reload empty playlist");
+        warn("cannot move: %s", error_playlist_invalid());
     }
 }
-
-void cmd_info(projectM *pm) {
-    unsigned int idx;
-
-    printf("PM playlist size: %d\n", pm->getPlaylistSize());
-    printf("Locked: %d\n", pm->isPresetLocked());
-    printf("Valid: %d\n", pm->presetPositionValid());
-    //printf("Queued: %d\n", pm->isPresetQueued());
-
-    bool not_end = pm->selectedPresetIndex(idx);
-    if (not_end) {
-        std::cout << "Selected preset index: " << idx << std::endl;
-        std::cout << "Current URL: "<< pm->getPresetURL(idx) << std::endl;
-    }
-}
-
 
 // perform the render loop (called in thread)
 void *render(void *arg) {
@@ -265,6 +237,17 @@ projectM *init_projectm(config cfg) {
     return ret;
 }
 
+char *error_playlist_invalid() {
+    if (global.pm->getPlaylistSize() == 0) {
+        return "playlist is empty";
+    } else if (!global.pm->presetPositionValid()) {
+        return "preset index is invalid";
+    } else {
+        return "unknown error";
+    }
+}
+
+
 void xlock(pthread_mutex_t *mutex) {
     int ret;
 
@@ -277,11 +260,6 @@ void xunlock(pthread_mutex_t *mutex) {
     
     ret = pthread_mutex_unlock(mutex);
     if (ret != 0)  die("cannot unlock mutex: %s", strerror(errno));
-}
-
-void fatal() {
-    perror("pmsh");
-    exit(1);
 }
 
 // Caution:
@@ -359,7 +337,7 @@ void warn(const char *format, ...) {
     va_list args;
     va_start(args, format);
 
-    // XXX: we do not check return values here since we are dying anyway
+    // Would be nice to check these returns somehow
     fprintf(stderr, "%s: ", binary_name);
     vfprintf(stderr, format, args);
     putc('\n', stderr);
@@ -373,7 +351,7 @@ void die(const char *format, ...) {
     va_list args;
     va_start(args, format);
 
-    // XXX: we do not check return values here since we are dying anyway
+    // We do not check return values here since we are dying anyway
     fprintf(stderr, "%s: ", binary_name);
     vfprintf(stderr, format, args);
     putc('\n', stderr);

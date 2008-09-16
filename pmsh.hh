@@ -6,9 +6,9 @@ struct config {
 void obey(projectM *pm);
 std::string ask();
 void act(projectM *pm, std::string line);
-void cmd_load(projectM *pm, std::string path);
-void cmd_reload(projectM *pm);
-void cmd_info(projectM *pm);
+
+void move(projectM *pm, int increment);
+
 void *render(void *arg);
 void xlock(pthread_mutex_t *mutex);
 void xunlock(pthread_mutex_t *mutex);
@@ -22,10 +22,10 @@ void debug_info(projectM *pm);
 void handle_event();
 void add_pcm(projectM *pm);
 
-void cmd_dir(projectM *pm, std::string path);
-
 bool file_exists(std::string path);
 std::string find_config();
+
+char *error_playlist_invalid();
 
 void warn(const char *format, ...);
 void die(const char *format, ...);
