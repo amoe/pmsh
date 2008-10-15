@@ -10,5 +10,4 @@ pmsh:
 bugs
 
 pM spews a non-NLed 'cleanup' to the terminal on exit
-
 add tests for simple functions to test.cc

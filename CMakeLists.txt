@@ -1,18 +1,20 @@
 # pmsh.cmk
-# TODO: add emacs machinery
+# TODO: add emacs machinery, find cppunit with pkg-config
 
 PROJECT(projectM-emacs)
 
-ADD_EXECUTABLE(
-  pmsh
-  pmsh.cc pmsh.hh command.cc command.hh pulse.cc pulse.hh
-  ConfigFile.cpp ConfigFile.h
-)
+SET(
+    PMSH_SRCS
+    pmsh.cc pulse.cc command.cc ConfigFile.cpp
+) 
+    
 
-ADD_EXECUTABLE(test test.cc)
+ADD_EXECUTABLE(pmsh main.cc ${PMSH_SRCS})
+
+ADD_EXECUTABLE(test0 test.cc ${PMSH_SRCS})
 
 ENABLE_TESTING()
-ADD_TEST(test test)
+ADD_TEST(test0 test0)
 
 INCLUDE(FindPkgConfig.cmake)
 
@@ -28,7 +30,7 @@ MESSAGE(FATAL_ERROR "ERROR: Pulse Audio is NOT found. Please install pulse audio
 endif(LIBPULSE_FOUND)
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
-	pkg_search_module(LIBPROJECTM REQUIRED libprojectM)
+
 	ADD_DEFINITIONS(-DLINUX -DPROJECTM_PREFIX='"${LIBPROJECTM_PREFIX}"')
 else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 	set(LIBPROJECTM_FOUND true)
@@ -49,6 +51,12 @@ INCLUDE_DIRECTORIES(
 )
 LINK_DIRECTORIES(${PROJECTM_LINK} ${LIBPULSE_LDFLAGS})
 
-TARGET_LINK_LIBRARIES(pmsh projectM ${SDL_LIBRARY} pulse)
+SET(
+    PMSH_LIBS
+    projectM pulse ${SDL_LIBRARY}
+)
+
+TARGET_LINK_LIBRARIES(pmsh ${PMSH_LIBS})
+TARGET_LINK_LIBRARIES(test0 cppunit ${PMSH_LIBS})
 
 INSTALL(TARGETS pmsh DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

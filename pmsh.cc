@@ -19,13 +19,10 @@ char binary_name[] = "pmsh";
 std::string config_path;
 state global;
 
-// FIXME:
 // main() needs to be in a separate file, because if we want to run unit tests
-// for the routines in pmsh.cc, we will need to be able to define main() and
-// also link to pmsh.o.  possibly rename this function pmsh_main() and call that
-// from main.c.
-// We could also use a preprocessor directive HAVE_TEST to do this
-int main(int argc, char **argv) {
+// for the routines in pmsh.cc, we need to be able to define main() and
+// also link to pmsh.o - we could also use conditional compilation
+int pmsh_main(int argc, char **argv) {
     projectM *pm;
     pthread_t renderer;
     pa_threaded_mainloop *pa;
@@ -162,6 +159,7 @@ void handle_event() {
         switch (evt.type) {
             case SDL_QUIT:
                 cleanup();
+                puts("exiting");
                 exit(0);
             default:
                 // eat this event
@@ -269,6 +267,9 @@ void xunlock(pthread_mutex_t *mutex) {
 void cleanup() {
     int ret;
 
+
+    puts("entering cleanup()");
+
     // WARNING: this lock MUST be released before obtaining the lock on the
     // mainloop, otherwise there's an extremely difficult to detect deadlock
     // with cb_stream_read().
@@ -297,6 +298,9 @@ void cleanup() {
         pa_context_unref(global.context);
     }
     
+    // Crash occurs after unlocking mainloop
+    // So possibly this is in the wrong order?
+    /*
     if (global.mainloop_api) {
         puts("requesting quit from api");
         global.mainloop_api->quit(global.mainloop_api, 0);
@@ -304,6 +308,16 @@ void cleanup() {
 
     puts("unlocking mainloop");
     pa_threaded_mainloop_unlock(global.threaded_mainloop);
+    */
+
+
+    puts("unlocking mainloop");
+    pa_threaded_mainloop_unlock(global.threaded_mainloop);
+
+    if (global.mainloop_api) {
+        puts("requesting quit from api");
+        global.mainloop_api->quit(global.mainloop_api, 0);
+    }
 
     puts("stopping mainloop");
     if (global.threaded_mainloop) {
@@ -311,11 +325,22 @@ void cleanup() {
     }
 
 
+    puts("destroying mutex");
     pthread_mutex_destroy(&(global.mutex));
-    SDL_Quit();
 
+    //puts("shutting down SDL");
+    //SDL_Quit();
     puts("deleting projectm instance");
     delete global.pm;
+    
+    // IMPORTANT:
+    /* According to the SDL docs, a user should always shut down the library
+       with SDL_Quit().  However, calling SDL_Quit() either before or after
+       deleting the projectM instance causes a hard lock on my system.  Is this
+       related to the 'fullscreen quit kills mouse' issue? */
+
+    //puts("shutting down SDL");
+    //SDL_Quit();
 }
 
 // FIXME: needs to be rewritten in C++ style

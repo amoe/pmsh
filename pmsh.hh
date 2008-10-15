@@ -3,6 +3,8 @@ struct config {
     int height;
 };
 
+int pmsh_main(int argc, char **argv);
+
 void obey(projectM *pm);
 std::string ask();
 void act(projectM *pm, std::string line);

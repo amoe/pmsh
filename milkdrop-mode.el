@@ -66,5 +66,4 @@
           "\\)"
           "\\([^_[:alnum:]]\\|\\'\\)"))
 
-
 (provide 'milkdrop-mode)

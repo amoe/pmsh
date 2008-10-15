@@ -13,19 +13,21 @@
 
 (defvar pmsh-program-name "pmsh")
 
-; Insert keybindings into milkdrop-mode.  FIXME: bindings should be present in
-; this mode as well
+; Keymaps are passed by reference, so we take a keymap KM as input and add our
+; bindings to it
+(defun pmsh-bind-keys (km)
+  (define-key km (kbd "C-c ; r") 'pmsh-send-reload)
+  (define-key km (kbd "C-c ; x") 'pmsh-send-exit)
+  (define-key km (kbd "C-c ; l") 'pmsh-send-load))
+
 (define-derived-mode inferior-pmsh-mode comint-mode "Inferior pmsh"
   "Inferior pmsh interaction"
   (setq comint-prompt-regexp "^> *")
   (setq major-mode 'inferior-pmsh-mode)
   (setq mode-name "Inferior pmsh")
   (setq mode-line-process '(":%s"))
-  (define-key inferior-pmsh-mode-map (kbd "C-c ; r") 'pmsh-send-reload))
-
-(define-key milkdrop-mode-map (kbd "C-c ; r") 'pmsh-send-reload)
-(define-key milkdrop-mode-map (kbd "C-c ; x") 'pmsh-send-exit)
-(define-key milkdrop-mode-map (kbd "C-c ; l") 'pmsh-send-load)
+  (pmsh-bind-keys milkdrop-mode-map)
+  (pmsh-bind-keys inferior-pmsh-mode-map))
 
 (defun pmsh-proc ()
   (get-buffer-process "*pmsh*"))

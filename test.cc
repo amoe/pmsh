@@ -2,6 +2,10 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
+#include <libprojectM/projectM.hpp>
+
+#include "pmsh.hh"
+
 class Test : public CppUnit::TestFixture {
     CPPUNIT_TEST_SUITE(Test);
 
@@ -11,7 +15,9 @@ class Test : public CppUnit::TestFixture {
 
 public:
     void test0() {
-        CPPUNIT_ASSERT(2 + 2 != 5);
+        CPPUNIT_ASSERT(
+            strcmp(append_error_conversion("foo"), "foo: %s") == 0
+        );
     }
 };
 

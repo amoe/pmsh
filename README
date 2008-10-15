@@ -1,23 +1,10 @@
-IMPORTANT!!!
-----------------------------
-
-On my system there is a rare but present bug that LOCKS MY ENTIRE SYSTEM[*].
-It occurs randomly, sometimes during shutdown, but can occur any time.  It
-seems to sometimes be triggered by switching between windows.
-It is intermittent.  I have no idea if it's caused by my code, projectm,
-pulseaudio, my laptop, my video card, X.
-I'd estimate its frequency at 1/100 runs (not easy to reproduce, but not exactly
-uncommon either).
-So PLEASE BEWARE when using this code, save everything you have running.
-
-********
-If you do experience this bug, please email me immediately!
-If you don't experience it, email me as well!
-********
-
-[*]: Not quite true: the whole of X locks up, no mouse, no ctrl-alt-backspace,
-but pressing the power button on my laptop causes it to shut down cleanly, or so
-it seems - it switches itself off after ~30 seconds.
+WHAT IS IT?
+-----------
+It's a small program that takes commands in text mode and allows basic
+manipulation of projectM.  The idea is to let you develop presets using a
+standard text editor like Emacs, the same way you would use something like 'M-x
+run-scheme', or, more traditionally, reloading your file in a separate console
+window.
 
 
 REQUIREMENTS
@@ -32,6 +19,7 @@ FIRST
 Copy your favourite projectM config to either ~/etc/pmsh.inp or ~/.pmsh.inp,
 whatever floats your boat.
 The code builds with cmake, ignore pmsh.mk
+
 
 TO USE THE EMACS MODE
 -------------------------
@@ -53,12 +41,13 @@ M-x load-file
 type path to inferior-pmsh-mode.el
 M-x run-pmsh
 
-Now you can send two commands from your preset buffer
-(NB not *pmsh* at present):
+Now you can send two commands from your preset or pmsh buffer:
+C-c ; l: load preset (type path in minibuffer)
 C-c ; r: reload preset from file
 C-c ; x: exit
 
 Enjoy ;)
+
 
 Pulse issues
 ------------

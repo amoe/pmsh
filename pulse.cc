@@ -11,15 +11,17 @@
 pa_threaded_mainloop *init_pulseaudio(projectM *pm) {
     int ret;
 
-    // FIXME: check all pointer returns for NULL
     global.threaded_mainloop = pa_threaded_mainloop_new();
+    if (!global.threaded_mainloop) die_pulse("cannot create threaded mainloop");
 
     pa_threaded_mainloop_lock(global.threaded_mainloop);
 
     global.mainloop_api = pa_threaded_mainloop_get_api(global.threaded_mainloop);
+    if (!global.mainloop_api) die_pulse("cannot get mainloop api");
 
     // connect to server, all options at defaults
     global.context = pa_context_new(global.mainloop_api, "pmsh");
+    if (!global.context) die_pulse("cannot create context");
 
     pa_context_set_state_callback(global.context, cb_context_state, pm);
 
@@ -89,6 +91,8 @@ void cb_stream_read(pa_stream *p, size_t bytes, void *userdata) {
     projectM *pm = (projectM *) userdata;
     const void *data;
     int ret;
+
+    printf("adding %d bytes of data\n", bytes);
 
     ret = pa_stream_peek(p, &data, &bytes);
     if (ret != 0) die_pulse("cannot peek pulse stream data");
