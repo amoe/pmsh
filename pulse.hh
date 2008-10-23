@@ -1,6 +1,10 @@
+
+
 struct state {
+    bool                 terminated;
     projectM             *pm;
-    pthread_mutex_t      mutex;
+    SDL_mutex            *mutex;
+    SDL_Thread           *renderer;
     pa_threaded_mainloop *threaded_mainloop;
     pa_mainloop_api      *mainloop_api;
     pa_context           *context;

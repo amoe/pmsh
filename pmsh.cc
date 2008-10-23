@@ -1,5 +1,3 @@
-#include <pthread.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -24,14 +22,15 @@ state global;
 // also link to pmsh.o - we could also use conditional compilation
 int pmsh_main(int argc, char **argv) {
     projectM *pm;
-    pthread_t renderer;
     pa_threaded_mainloop *pa;
     config cfg;
+
+    global.terminated = false;
 
     config_path = find_config();
     cfg = read_config(config_path);
 
-    pthread_mutex_init(&(global.mutex), NULL);
+    global.mutex = SDL_CreateMutex();
     
     init_sdl(cfg);
     pm = init_projectm(cfg);
@@ -40,7 +39,7 @@ int pmsh_main(int argc, char **argv) {
     
     pa = init_pulseaudio(pm);
 
-    pthread_create(&renderer, NULL, render, pm);
+    global.renderer = SDL_CreateThread(render, pm);
     
     obey(pm);
 
@@ -55,9 +54,9 @@ void obey(projectM *pm) {
         std::string resp = ask();
 
         // FIXME: separate function to use global state
-        xlock(&(global.mutex));
+        xlock(global.mutex);
         act(pm, resp);
-        xunlock(&(global.mutex));
+        xunlock(global.mutex);
     }
 }
 
@@ -121,6 +120,9 @@ void act(projectM *pm, std::string line) {
     else if (line == "i")
         cmd_info(pm);
 
+    else if (line == "f")
+        cmd_fullscreen();
+
     else warn("unrecognized command");
 }
 
@@ -136,19 +138,16 @@ void move(projectM *pm, int increment) {
 }
 
 // perform the render loop (called in thread)
-void *render(void *arg) {
+int render(void *arg) {
     projectM *pm = (projectM *) arg;
     
-    for (;;) {
+    while (!global.terminated) {
         handle_event();
 
-        xlock(&(global.mutex));
-        //add_pcm(pm);
+        xlock(global.mutex);
         pm->renderFrame();
-        xunlock(&(global.mutex));
-        
         SDL_GL_SwapBuffers();
-        // do something
+        xunlock(global.mutex);
     }
 }
 
@@ -181,7 +180,7 @@ void add_pcm(projectM *pm) {
 */
 
 void init_sdl(config cfg) {
-    SDL_Surface *ctx;
+   SDL_Surface *ctx;
     int ret;
 
     ret = SDL_Init(SDL_INIT_VIDEO);
@@ -246,18 +245,18 @@ char *error_playlist_invalid() {
 }
 
 
-void xlock(pthread_mutex_t *mutex) {
+void xlock(SDL_mutex *mutex) {
     int ret;
 
-    ret = pthread_mutex_lock(mutex);
-    if (ret != 0)  die("cannot lock mutex: %s", strerror(errno));
+    ret = SDL_LockMutex(mutex);
+    if (ret != 0)  die("cannot lock mutex: %s", SDL_GetError());
 }
 
-void xunlock(pthread_mutex_t *mutex) {
+void xunlock(SDL_mutex *mutex) {
     int ret;
     
-    ret = pthread_mutex_unlock(mutex);
-    if (ret != 0)  die("cannot unlock mutex: %s", strerror(errno));
+    ret = SDL_UnlockMutex(mutex);
+    if (ret != 0)  die("cannot unlock mutex: %s", SDL_GetError());
 }
 
 // Caution:
@@ -274,7 +273,7 @@ void cleanup() {
     // mainloop, otherwise there's an extremely difficult to detect deadlock
     // with cb_stream_read().
 
-    xunlock(&(global.mutex));
+    xunlock(global.mutex);
 
     // This can take a few seconds, don't despair
     puts("requesting lock");
@@ -326,10 +325,12 @@ void cleanup() {
 
 
     puts("destroying mutex");
-    pthread_mutex_destroy(&(global.mutex));
+    SDL_DestroyMutex(global.mutex);
 
-    //puts("shutting down SDL");
-    //SDL_Quit();
+    puts("terminating render thread");
+    global.terminated = true;
+    SDL_WaitThread(global.renderer, NULL);
+
     puts("deleting projectm instance");
     delete global.pm;
     
@@ -339,8 +340,8 @@ void cleanup() {
        deleting the projectM instance causes a hard lock on my system.  Is this
        related to the 'fullscreen quit kills mouse' issue? */
 
-    //puts("shutting down SDL");
-    //SDL_Quit();
+    puts("shutting down SDL");
+    SDL_Quit();
 }
 
 // FIXME: needs to be rewritten in C++ style

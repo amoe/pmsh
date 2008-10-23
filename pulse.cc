@@ -1,5 +1,6 @@
 #include <string>
 
+#include <SDL.h>
 #include <libprojectM/projectM.hpp>
 #include <pulse/pulseaudio.h>
 
@@ -92,17 +93,15 @@ void cb_stream_read(pa_stream *p, size_t bytes, void *userdata) {
     const void *data;
     int ret;
 
-    printf("adding %d bytes of data\n", bytes);
-
     ret = pa_stream_peek(p, &data, &bytes);
     if (ret != 0) die_pulse("cannot peek pulse stream data");
 
     ret = pa_stream_drop(p);
     if (ret != 0) die_pulse("cannot drop pulse stream data");
 
-    xlock(&(global.mutex));
+    xlock(global.mutex);
     pm->pcm()->addPCMfloat((float *) data, bytes / (sizeof(float)));
-    xunlock(&(global.mutex));
+    xunlock(global.mutex);
 }
 
 bool is_monitor_source(const char *name) {

@@ -11,9 +11,9 @@ void act(projectM *pm, std::string line);
 
 void move(projectM *pm, int increment);
 
-void *render(void *arg);
-void xlock(pthread_mutex_t *mutex);
-void xunlock(pthread_mutex_t *mutex);
+int render(void *arg);
+void xlock(SDL_mutex *mutex);
+void xunlock(SDL_mutex *mutex);
 void fatal();
 projectM *init_projectm(config cfg);
 void cleanup();

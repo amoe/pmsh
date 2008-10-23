@@ -5,6 +5,7 @@
 #include <dirent.h>
 
 #include <libprojectM/projectM.hpp>
+#include <SDL/SDL.h>
 
 #include "command.hh"
 #include "pmsh.hh"
@@ -70,4 +71,8 @@ void cmd_info(projectM *pm) {
     } else {
         warn(error_playlist_invalid());
     }
+}
+
+void cmd_fullscreen() {
+    std::cout << "Setting fullscreen mode" << '\n';
 }

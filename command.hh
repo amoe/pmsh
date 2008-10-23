@@ -6,3 +6,4 @@ void cmd_load(projectM *pm, std::string path);
 void cmd_dir(projectM *pm, std::string path);
 void cmd_reload(projectM *pm);
 void cmd_info(projectM *pm);
+void cmd_fullscreen();

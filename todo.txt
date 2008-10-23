@@ -4,10 +4,38 @@ pmsh:
 - cmd 'd': add directory of presets
 - cmd 'n': next
 - cmd 'p': prev
+- fullscreen cmd
 - pass events thru to milkdrop?
 - occasional segfault on exit
+
+- Accept single-char commands in fullscreen mode
+- proper config of width/height etc.
 
 bugs
 
 pM spews a non-NLed 'cleanup' to the terminal on exit
 add tests for simple functions to test.cc
+
+Two segfaults in cleanup()
+
+act() locks the mutex
+cb_stream_read is then called, it tries to lock the mutex but fails because
+act() is holding the lock.
+act then calls cleanup(), which tries to lock the mainloop
+but mainloop lock is still held by cb_stream_read which has blocked infinitely
+
+18:27  * amoe investigates
+18:30 < amoe> the more i think about this the more confused i get
+18:36 < amoe> yes i understand now
+18:37 < amoe> let's say my lock is m1, the threaded mainloop lock is m2
+18:38 < amoe> controlling thread locks m1 after handling a quit request
+18:38 < amoe> however, before it can lock m2, pulseaudio thread tries to lock
+              m1 to mutate some shared state
+18:39 < amoe> pulseaudio thread tries to lock m1 and blocks
+18:40 < amoe> controlling thread then tries to lock m2.  since pulseaudio
+              thread (a callback) is blocking on m1, m2 is held
+18:40 < amoe> so controlling thread blocks
+18:43 < amoe> when the CPU-intensive thread is active there's a much greater
+              latency between controlling thread locking m1 and m2
+18:43 < amoe> so there's more chance for PA thread to try to lock m1 in between
+18:43 < amoe> mguhhhhhh
