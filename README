@@ -14,34 +14,62 @@ pulseaudio
 libprojectM
 SDL
 
+
 FIRST
 -----
 Copy your favourite projectM config to either ~/etc/pmsh.inp or ~/.pmsh.inp,
 whatever floats your boat.
 The code builds with cmake, ignore pmsh.mk
 
+To build:
+
+amoe@vlinder $ cmake .
+amoe@vlinder $ make
+root@vlinder # make install
+
+HOW TO USE PMSH
+---------------
+
+Commands are one letter, A-Z.  A few take an argument separated by a space (one
+space max).  Leading whitespace is ignored.
+
+x           exit
+o           toggle preset lock on or off (stops preset switching automatically)
+n           next preset in playlist
+p           previous preset in playlist
+r           reload current preset from file
+c           clear playlist
+i           print some debugging information on the current state
+f           switch to fullscreen (unimplemented)
+l <file>    load preset from <file>
+d <dir>     load all presets from <dir> into playlist
+
+Arguments don't need internal whitespace quoted, the whole rest of the line is
+treated as the argument.  This allows you to more easily load traditional-ish
+Milkdrop preset paths: just type "l /home/me/mypresets/Geiss - Eggs.milk".
+
 
 TO USE THE EMACS MODE
 -------------------------
-
 M-x load-file
 type path to milkdrop-mode.el
 load .milk file
 M-x milkdrop-mode
 
-will eventually be streamlined and given instructions to autoload
+Will eventually be streamlined and given instructions to autoload
 
 
 HOW TO USE INFERIOR MODE
 ------------------------
-First, either define pmsh-program-name in your .emacs, or modify it in
-inferior-pmsh-mode.el.  needs to be the path to the pmsh binary
+Make sure the 'pmsh' binary is in your path.
 
 M-x load-file
 type path to inferior-pmsh-mode.el
 M-x run-pmsh
 
-Now you can send two commands from your preset or pmsh buffer:
+Now you can send the commands below from your preset or pmsh buffer.  Don't
+complain about the length, it's Emacs policy unfortunately.
+
 C-c ; l: load preset (type path in minibuffer)
 C-c ; r: reload preset from file
 C-c ; x: exit
@@ -49,9 +77,8 @@ C-c ; x: exit
 Enjoy ;)
 
 
-Pulse issues
-------------
-
+A NOTE ABOUT PULSE
+------------------
 Pulse seems to work quite badly on my system.
 However, I think it's because pmsh is so slow, which is caused by a graphics
 driver problem, not this code.
@@ -70,3 +97,10 @@ Run pmsh.
 Now look at the first terminal, does it display any errors?
 If not, all should be well.
 On my system it says "Failed to push data into output queue." loads of times.
+
+
+REGARDING PROJECTM 2.0
+----------------------
+I haven't yet had a chance to experiment with ProjectM 2.0 and new pixel shader
+presets.  It's likely that pmsh does not work with them.  Fingers crossed
+porting should not be a major problem.

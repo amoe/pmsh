@@ -1,3 +1,4 @@
+// fixme: eliminate this
 struct config {
     int width;
     int height;
@@ -28,11 +29,17 @@ bool file_exists(std::string path);
 std::string find_config();
 
 char *error_playlist_invalid();
+void keypress(SDLKey k);
 
 void warn(const char *format, ...);
 void die(const char *format, ...);
 char *append_error_conversion(char *format);
 
+void get_options(int argc, char **argv);
+void version();
+
 
 #define TEST_PRESET      "/home/amoe/milkdrop/test.milk"
+
+#define PMSH_VERSION 1
 

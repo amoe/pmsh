@@ -49,11 +49,11 @@ void die_pulse(char *message) {
 void cb_context_state(pa_context *c, void *userdata) {
     pa_operation *o;
 
-    puts("state cb");
+    //puts("state cb");
     
     switch (pa_context_get_state(c)) {
         case PA_CONTEXT_READY:
-            puts("stream ready");
+            //puts("stream ready");
             o = pa_context_get_source_info_list(
                 c, cb_context_source_info_list, userdata
             );
@@ -71,7 +71,7 @@ void cb_context_source_info_list(
     pa_context *c, const pa_source_info *i, int eol, void *userdata
 ) {
     int ret;
-    puts("source info");
+    //puts("source info");
 
     if (!eol && is_monitor_source(i->name)) {
         global.stream = pa_stream_new(

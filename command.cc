@@ -6,7 +6,9 @@
 
 #include <libprojectM/projectM.hpp>
 #include <SDL/SDL.h>
+#include <pulse/pulseaudio.h>
 
+#include "pulse.hh"
 #include "command.hh"
 #include "pmsh.hh"
 
@@ -19,12 +21,16 @@ void cmd_prev(projectM *pm) {
 }
 
 void cmd_load(projectM *pm, std::string path) {
-    std::cout << "Loading file: " << path << std::endl;
+    std::cout << "loading file: " << path << '\n';
 
-    // must use 3 or crash
-    int idx = pm->addPresetURL(path, "current", 3);
-    pm->selectPreset(idx);
-    pm->setPresetLock(true);
+    try {
+        // must use 3 or crash
+        int idx = pm->addPresetURL(path, "current", 3);
+        pm->selectPreset(idx);
+        pm->setPresetLock(true);
+    } catch (int e) {
+        warn("cannot load preset file '%s'", path.c_str());
+    }
 }
 
 void cmd_dir(projectM *pm, std::string path) {
@@ -36,7 +42,7 @@ void cmd_dir(projectM *pm, std::string path) {
 
     while ((de = readdir(dir)) != NULL) {
         std::string abs = path + "/" + de->d_name;
-        std::cout << abs << std::endl;
+        std::cout << abs << '\n';
 
         pm->addPresetURL(abs, "cmd_dir", 3);
     }
@@ -66,13 +72,29 @@ void cmd_info(projectM *pm) {
 
     bool valid = pm->selectedPresetIndex(idx);
     if (valid) {
-        std::cout << "Selected preset index: " << idx << std::endl;
-        std::cout << "Current URL: "<< pm->getPresetURL(idx) << std::endl;
+        std::cout << "Selected preset index: " << idx << '\n';
+        std::cout << "Current URL: "<< pm->getPresetURL(idx) << '\n';
     } else {
         warn(error_playlist_invalid());
     }
 }
 
 void cmd_fullscreen() {
-    std::cout << "Setting fullscreen mode" << '\n';
+    SDL_Surface *ctx;
+    Uint32 flags;
+
+    std::cout << "toggling fullscreen mode" << '\n';
+
+    global.fullscreen = !global.fullscreen;
+
+    flags = SDL_OPENGL;
+    if (global.fullscreen) flags |= SDL_FULLSCREEN;
+
+    ctx = SDL_SetVideoMode(
+        global.window_width, global.window_height, 0, flags
+    );
+    if (ctx == NULL) die("cannot set video mode: %s", SDL_GetError());
+    SDL_ShowCursor(global.fullscreen ? SDL_DISABLE : SDL_ENABLE);
+    
+    global.pm->projectM_resetGL(global.window_width, global.window_height);
 }

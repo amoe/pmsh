@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #include <iostream>
 
@@ -8,12 +9,11 @@
 #include <pulse/pulseaudio.h>
 #include <SDL/SDL.h>
 
+#include "pulse.hh"
 #include "pmsh.hh"
 #include "command.hh"
-#include "pulse.hh"
 #include "ConfigFile.h" // local version
 
-char binary_name[] = "pmsh";
 std::string config_path;
 state global;
 
@@ -21,41 +21,140 @@ state global;
 // for the routines in pmsh.cc, we need to be able to define main() and
 // also link to pmsh.o - we could also use conditional compilation
 int pmsh_main(int argc, char **argv) {
-    projectM *pm;
     pa_threaded_mainloop *pa;
     config cfg;
 
     global.terminated = false;
 
+    get_options(argc, argv);
+
     config_path = find_config();
     cfg = read_config(config_path);
+
+    global.window_width = cfg.width;
+    global.window_height = cfg.height;
 
     global.mutex = SDL_CreateMutex();
     
     init_sdl(cfg);
-    pm = init_projectm(cfg);
-    // fixme: duh
-    global.pm = pm;
+    global.pm = init_projectm(cfg);
     
-    pa = init_pulseaudio(pm);
+    pa = init_pulseaudio(global.pm);
 
-    global.renderer = SDL_CreateThread(render, pm);
+    global.renderer = SDL_CreateThread(render, global.pm);
     
-    obey(pm);
+    obey(global.pm);
 
     cleanup();
 
     return 0;
 }
 
+
+void get_options(int argc, char **argv) {
+    int c;
+    
+    while ((c = getopt(argc, argv, "V")) != -1) {
+        switch (c) {
+            case 'V':
+                version();
+                exit(EXIT_SUCCESS);
+                break;                 // not reached
+            case '?':
+                exit(EXIT_FAILURE);    // getopt() has printed an error
+                break;
+        }
+    }
+}
+
+std::string find_config() {
+    char *home = getenv("HOME");
+    std::string etc_path(home), dot_path(home);
+
+    etc_path.append("/etc/pmsh.inp");
+    dot_path.append("/.pmsh.inp");
+
+    if (file_exists(etc_path))
+        return etc_path;
+    else
+        return dot_path;
+}
+
+
+config read_config(std::string path) {
+    try {
+        config ret;
+        ConfigFile cf(path);
+
+        ret.width  = cf.read<int>("Window Width");
+        ret.height = cf.read<int>("Window Height");
+
+        return ret;
+    } catch (ConfigFile::file_not_found e) {
+        die(
+            "config file not found: please create ~/.pmsh.inp or "
+            "~/etc/pmsh.inp"
+        );
+    }
+}
+
+
+void init_sdl(config cfg) {
+   SDL_Surface *ctx;
+    int ret;
+
+    ret = SDL_Init(SDL_INIT_VIDEO);
+    if (ret == -1)  die("cannot initialize SDL: %s", SDL_GetError());
+
+    ctx = SDL_SetVideoMode(cfg.width, cfg.height, 0, SDL_OPENGL);
+    if (ctx == NULL) die("cannot set video mode: %s", SDL_GetError());
+
+    SDL_WM_SetCaption("pmsh", NULL);
+}
+
+
+projectM *init_projectm(config cfg) {
+    projectM *ret;
+
+    ret = new projectM(config_path, 0);
+    
+    return ret;
+}
+
+
+// perform the render loop (called in thread)
+int render(void *arg) {
+    projectM *pm = (projectM *) arg;
+    
+    while (!global.terminated) {
+        handle_event();
+
+        xlock(global.mutex);
+
+        pm->renderFrame();
+        SDL_GL_SwapBuffers();
+
+        xunlock(global.mutex);
+    }
+
+    //puts("renderer: quitting");
+    return 0;
+}
+
+
 // take commands from user
 void obey(projectM *pm) {
     for (;;) {
         std::string resp = ask();
 
-        // FIXME: separate function to use global state
+        // FIXME, is it right to lock here?  Some commands might not mutate
+        // state, and it requires the dubious hack of unlocking in cleanup()
         xlock(global.mutex);
-        act(pm, resp);
+        try {
+            act(pm, resp);
+        } catch (int e) {
+            std::cerr << "exception: " << e << '\n';
+        }
         xunlock(global.mutex);
     }
 }
@@ -72,58 +171,81 @@ std::string ask() {
     return line;
 }
 
-// fixme: switch on line.at(0) skipping whitespace
 void act(projectM *pm, std::string line) {
-    if (line.empty()) {
-        // just eat the line
-    }
-
-    else if (line == "x") {
-        cleanup();
-        exit(0);
-    }
-
-    else if (line.at(0) == 'l') {
-        if (line.size() > 2)
-            cmd_load(pm, line.substr(2));
-        else
-            warn("command 'l' requires an argument");
-    }
-
-    else if (line == "o") {
-        std::cout << "toggling lock" << std::endl;
-        pm->setPresetLock(!pm->isPresetLocked());
-    }
-
-    else if (line == "n") {
-        cmd_next(pm);
-    }
+    std::string whitespace = " \t";
+    std::string::size_type idx;
+    char cmd;
     
-    else if (line == "p") {
+    idx = line.find_first_not_of(whitespace);
+    if (idx == std::string::npos)  return;
+    cmd = line.at(idx);
+
+    switch (cmd) {
+    case 'x': {
+            cleanup();
+            exit(EXIT_SUCCESS);
+            break;
+        }
+
+    case 'o': {
+        std::cout << "toggling lock" << '\n';
+        pm->setPresetLock(!pm->isPresetLocked());
+        break;
+    }
+
+    case 'n': {
+        cmd_next(pm);
+        break;
+    }
+
+    case 'p': {
         cmd_prev(pm);
+        break;
     }
 
-    else if (line.at(0) == 'd') {
-        if (line.size() > 2)
-            cmd_dir(pm, line.substr(2));
-        else
-            warn("command 'd' requires an argument");
-    }
-
-    else if (line == "r")
+    case 'r': {
         cmd_reload(pm);
+        break;
+    }
 
-            
-    else if (line == "c")
+    case 'c': {
         pm->clearPlaylist();
+        break;
+    }
 
-    else if (line == "i")
+    case 'i': {
         cmd_info(pm);
+        break;
+    }
 
-    else if (line == "f")
+    case 'f': {
         cmd_fullscreen();
+        break;
+    }
 
-    else warn("unrecognized command");
+    case 'l': {
+        if (line.size() > (idx + 2))
+            cmd_load(pm, line.substr(idx + 2));
+        else
+            warn("command '%c' requires an argument", cmd);
+
+        break;
+    }
+
+    case 'd': {
+        if (line.size() > (idx + 2))
+            cmd_dir(pm, line.substr(idx + 2));
+        else
+            warn("command '%c' requires an argument", cmd);
+
+        break;
+    }
+
+    default: {
+        warn("unrecognized command");
+    }
+        
+    }
 }
 
 void move(projectM *pm, int increment) {
@@ -137,25 +259,15 @@ void move(projectM *pm, int increment) {
     }
 }
 
-// perform the render loop (called in thread)
-int render(void *arg) {
-    projectM *pm = (projectM *) arg;
-    
-    while (!global.terminated) {
-        handle_event();
-
-        xlock(global.mutex);
-        pm->renderFrame();
-        SDL_GL_SwapBuffers();
-        xunlock(global.mutex);
-    }
-}
 
 void handle_event() {
     SDL_Event evt;
 
     while (SDL_PollEvent(&evt)) {
         switch (evt.type) {
+            case SDL_KEYDOWN:
+                keypress(evt.key.keysym.sym);
+                break;
             case SDL_QUIT:
                 cleanup();
                 puts("exiting");
@@ -167,7 +279,20 @@ void handle_event() {
     }
 }
 
+void keypress(SDLKey k) {
+    switch (k) {
+        case SDLK_f:
+            cmd_fullscreen();
+            break;
+        case SDLK_x:
+            cleanup();
+            exit(EXIT_SUCCESS);
+            break;
+    }
+}
+
 /*
+// Add random samples for testing
 void add_pcm(projectM *pm) {
     short data[2][512];
 
@@ -179,41 +304,7 @@ void add_pcm(projectM *pm) {
 }
 */
 
-void init_sdl(config cfg) {
-   SDL_Surface *ctx;
-    int ret;
 
-    ret = SDL_Init(SDL_INIT_VIDEO);
-    if (ret == -1)  die("cannot initialize SDL: %s", SDL_GetError());
-
-    ctx = SDL_SetVideoMode(cfg.width, cfg.height, 16, SDL_OPENGL);
-    if (ctx == NULL) die("cannot set video mode: %s", SDL_GetError());
-
-    SDL_WM_SetCaption("pmsh", NULL);
-}
-
-config read_config(std::string path) {
-    config ret;
-    ConfigFile cf(path);
-
-    ret.width  = cf.read<int>("Window Width");
-    ret.height = cf.read<int>("Window Height");
-
-    return ret;
-}
-
-std::string find_config() {
-    char *home = getenv("HOME");
-    std::string etc_path(home), dot_path(home);
-
-    etc_path.append("/etc/pmsh.inp");
-    dot_path.append("/.pmsh.inp");
-
-    if (file_exists(etc_path))
-        return etc_path;
-    else
-        return dot_path;
-}
 
 bool file_exists(std::string path) {
     std::ifstream input;
@@ -226,13 +317,6 @@ bool file_exists(std::string path) {
     return ret;
 }
 
-projectM *init_projectm(config cfg) {
-    projectM *ret;
-
-    ret = new projectM(config_path, 0);
-    
-    return ret;
-}
 
 char *error_playlist_invalid() {
     if (global.pm->getPlaylistSize() == 0) {
@@ -263,85 +347,75 @@ void xunlock(SDL_mutex *mutex) {
 // The order of cleaning stuff up is _very_ sensitive.
 // Minor tweaks cause deadlocks, segfaults, X errors, double frees, pretty much
 // anything you can imagine.
+
+// Particularly important:
+// 1.  SDL_Quit() MUST be called after terminating the render thread, since
+// both renderFrame() and SDL_GL_SwapBuffers() will segfault if called either
+// concurrently with or after it.
+// 2.  If an SDL mutex is destroyed and another thread tries to lock it, the
+// lock will hang indefinitely.  It will NOT give an error, despite the lock
+// being destroyed - it looks just like a deadlock, but is not.
 void cleanup() {
     int ret;
 
-
-    puts("entering cleanup()");
+    std::cout << "cleaning up... ";
+    std::cout.flush();
 
     // WARNING: this lock MUST be released before obtaining the lock on the
     // mainloop, otherwise there's an extremely difficult to detect deadlock
     // with cb_stream_read().
-
     xunlock(global.mutex);
 
     // This can take a few seconds, don't despair
-    puts("requesting lock");
+    //puts("requesting lock");
     pa_threaded_mainloop_lock(global.threaded_mainloop);
-    puts("got lock");
+    //puts("got lock");
 
     if (global.stream) {
-        puts("disconnecting & unreffing stream");
+        //puts("disconnecting & unreffing stream");
         ret = pa_stream_disconnect(global.stream);
         if (ret != 0)  die_pulse("cannot disconnect pulse stream");
         pa_stream_unref(global.stream);
     }
-
-    // We SHOULD be able to delete projectM here, since cb_stream_read() is no
-    // longer called.  But it doesn't work that way in reality
     
     if (global.context) {
-        puts("disconnecting context");
+        //puts("disconnecting context");
         pa_context_disconnect(global.context);
-        puts("unreffing context");
+        //puts("unreffing context");
         pa_context_unref(global.context);
     }
     
-    // Crash occurs after unlocking mainloop
-    // So possibly this is in the wrong order?
-    /*
-    if (global.mainloop_api) {
-        puts("requesting quit from api");
-        global.mainloop_api->quit(global.mainloop_api, 0);
-    }
-
-    puts("unlocking mainloop");
-    pa_threaded_mainloop_unlock(global.threaded_mainloop);
-    */
-
-
-    puts("unlocking mainloop");
+    //puts("unlocking mainloop");
     pa_threaded_mainloop_unlock(global.threaded_mainloop);
 
     if (global.mainloop_api) {
-        puts("requesting quit from api");
+        //puts("requesting quit from api");
         global.mainloop_api->quit(global.mainloop_api, 0);
     }
 
-    puts("stopping mainloop");
+    //puts("stopping mainloop");
     if (global.threaded_mainloop) {
         pa_threaded_mainloop_stop(global.threaded_mainloop);
     }
 
 
-    puts("destroying mutex");
-    SDL_DestroyMutex(global.mutex);
-
-    puts("terminating render thread");
+    //puts("terminating render thread");
     global.terminated = true;
     SDL_WaitThread(global.renderer, NULL);
 
-    puts("deleting projectm instance");
+    // We can only destroy the mutex after terminating the rendering thread in
+    // an "almost obvious" fact
+    //puts("destroying mutex");
+    SDL_DestroyMutex(global.mutex);
+
+    //puts("deleting projectm instance");
     delete global.pm;
     
-    // IMPORTANT:
-    /* According to the SDL docs, a user should always shut down the library
-       with SDL_Quit().  However, calling SDL_Quit() either before or after
-       deleting the projectM instance causes a hard lock on my system.  Is this
-       related to the 'fullscreen quit kills mouse' issue? */
-
-    puts("shutting down SDL");
+    //puts("shutting down SDL");
     SDL_Quit();
+
+    // ;)
+    std::cout << " done.\n";
 }
 
 // FIXME: needs to be rewritten in C++ style
@@ -364,7 +438,7 @@ void warn(const char *format, ...) {
     va_start(args, format);
 
     // Would be nice to check these returns somehow
-    fprintf(stderr, "%s: ", binary_name);
+    fprintf(stderr, "warning: ");
     vfprintf(stderr, format, args);
     putc('\n', stderr);
 
@@ -378,12 +452,18 @@ void die(const char *format, ...) {
     va_start(args, format);
 
     // We do not check return values here since we are dying anyway
-    fprintf(stderr, "%s: ", binary_name);
+    fprintf(stderr, "error: ");
     vfprintf(stderr, format, args);
     putc('\n', stderr);
 
     va_end(args);
 
-    cleanup();
+    //cleanup();
     exit(EXIT_FAILURE);
 }
+
+
+void version() {
+    std::cout << "pmsh (the projectM shell) v" << PMSH_VERSION << '\n';
+}
+

@@ -1,7 +1,8 @@
-
-
 struct state {
     bool                 terminated;
+    bool                 fullscreen;
+    int                  window_width;
+    int                  window_height;
     projectM             *pm;
     SDL_mutex            *mutex;
     SDL_Thread           *renderer;

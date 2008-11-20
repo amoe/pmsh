@@ -1,22 +1,12 @@
 TODO
 
 pmsh:
-- cmd 'd': add directory of presets
-- cmd 'n': next
-- cmd 'p': prev
-- fullscreen cmd
 - pass events thru to milkdrop?
-- occasional segfault on exit
-
-- Accept single-char commands in fullscreen mode
+- accept single-char commands in fullscreen mode
 - proper config of width/height etc.
-
-bugs
-
-pM spews a non-NLed 'cleanup' to the terminal on exit
-add tests for simple functions to test.cc
-
-Two segfaults in cleanup()
+- add tests for simple functions to test.cc
+- sanitise global variables and header files
+- decent error message when the config file is not found
 
 act() locks the mutex
 cb_stream_read is then called, it tries to lock the mutex but fails because
