@@ -144,7 +144,7 @@ int render(void *arg) {
 
 // take commands from user
 void obey(projectM *pm) {
-    for (;;) {
+    while (!std::cin.eof()) {
         std::string resp = ask();
 
         // FIXME, is it right to lock here?  Some commands might not mutate
@@ -157,6 +157,10 @@ void obey(projectM *pm) {
         }
         xunlock(global.mutex);
     }
+
+    // Since we've exited with a ^D if we get here, output an NL to make the
+    // cleanup text look prettier
+    std::cout << '\n';
 }
 
 

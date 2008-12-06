@@ -4,6 +4,8 @@
 #include <string.h>
 #include <dirent.h>
 
+#include <iostream>
+
 #include <libprojectM/projectM.hpp>
 #include <SDL/SDL.h>
 #include <pulse/pulseaudio.h>
