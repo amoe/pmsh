@@ -1,6 +1,8 @@
 # pmsh.cmk
 # TODO: add emacs machinery, find cppunit with pkg-config
 
+cmake_minimum_required(VERSION 2.6)
+
 PROJECT(projectM-emacs)
 
 SET(

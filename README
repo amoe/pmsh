@@ -6,12 +6,16 @@ standard text editor like Emacs, the same way you would use something like 'M-x
 run-scheme', or, more traditionally, reloading your file in a separate console
 window.
 
+The program was born from imagining a fullscreen projectM with a transparent
+emacs laid over the top, reloading a preset in real time to music...  If you
+ever manage to achieve this dream, send me a screenshot.  :)
+
 
 REQUIREMENTS
 ------------
-emacs 22 (not checked)
+emacs 22 (not checked by cmake)
 pulseaudio
-libprojectM
+libprojectM (branch version, or 1.2.0 - not represet/2.*)
 SDL
 
 
@@ -29,9 +33,8 @@ root@vlinder # make install
 
 HOW TO USE PMSH
 ---------------
-
-Commands are one letter, A-Z.  A few take an argument separated by a space (one
-space max).  Leading whitespace is ignored.
+Commands are one letter, A-Z.  A few take an argument separated by a space.
+Any whitespace before a command is ignored.
 
 x           exit
 o           toggle preset lock on or off (stops preset switching automatically)
@@ -47,6 +50,9 @@ d <dir>     load all presets from <dir> into playlist
 Arguments don't need internal whitespace quoted, the whole rest of the line is
 treated as the argument.  This allows you to more easily load traditional-ish
 Milkdrop preset paths: just type "l /home/me/mypresets/Geiss - Eggs.milk".
+Accordingly, the command "l  /foo.milk" will attempt to load the file
+' /foo.milk' - that is, the initial space is treated as part of the filename.
+Watch out for that.
 
 
 TO USE THE EMACS MODE
@@ -56,8 +62,7 @@ type path to milkdrop-mode.el
 load .milk file
 M-x milkdrop-mode
 
-Will eventually be streamlined and given instructions to autoload
-
+Everyone has there own method for emacs extensions I am sure.
 
 HOW TO USE INFERIOR MODE
 ------------------------
@@ -68,7 +73,8 @@ type path to inferior-pmsh-mode.el
 M-x run-pmsh
 
 Now you can send the commands below from your preset or pmsh buffer.  Don't
-complain about the length, it's Emacs policy unfortunately.
+complain about the length, it's Emacs policy unfortunately.  Viper users are
+encouraged to bind commands to bizarre keys in command mode.
 
 C-c ; l: load preset (type path in minibuffer)
 C-c ; r: reload preset from file
