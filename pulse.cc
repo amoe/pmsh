@@ -40,7 +40,7 @@ pa_threaded_mainloop *init_pulseaudio(projectM *pm) {
 }
 
 
-void die_pulse(char *message) {
+void die_pulse(const char *message) {
     // unfreed msg is cleaned by program exit
     char *msg = append_error_conversion(message);
     die(msg, pa_strerror(pa_context_errno(global.context)));

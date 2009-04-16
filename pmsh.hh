@@ -28,12 +28,12 @@ void add_pcm(projectM *pm);
 bool file_exists(std::string path);
 std::string find_config();
 
-char *error_playlist_invalid();
+const char *error_playlist_invalid();
 void keypress(SDLKey k);
 
 void warn(const char *format, ...);
 void die(const char *format, ...);
-char *append_error_conversion(char *format);
+char *append_error_conversion(const char *format);
 
 void get_options(int argc, char **argv);
 void version();

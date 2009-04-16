@@ -322,7 +322,7 @@ bool file_exists(std::string path) {
 }
 
 
-char *error_playlist_invalid() {
+const char *error_playlist_invalid() {
     if (global.pm->getPlaylistSize() == 0) {
         return "playlist is empty";
     } else if (!global.pm->presetPositionValid()) {
@@ -423,7 +423,7 @@ void cleanup() {
 }
 
 // FIXME: needs to be rewritten in C++ style
-char *append_error_conversion(char *format) {
+char *append_error_conversion(const char *format) {
     char conv[] = ": %s";
     size_t len = strlen(format) + sizeof(conv);
     char *ret = (char *) malloc(len);

@@ -23,6 +23,6 @@ void cb_context_source_info_list(
 );
 void cb_stream_read(pa_stream *p, size_t bytes, void *userdata);
 
-void die_pulse(char *message);
+void die_pulse(const char *message);
 
 extern state global;
