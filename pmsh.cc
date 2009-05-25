@@ -208,10 +208,23 @@ std::string getline_interruptible() {
 
         while (aio_error(&aiocb) == EINPROGRESS) {
             minisleep();
-            if (global.terminated)
+            if (global.terminated) {
+                ret1 = aio_cancel(fileno(stdin), &aiocb);
+
+                if (ret1 == AIO_CANCELED) {
+                    puts("canceled AIO operation successfully");
+                } else if (ret1 == AIO_NOTCANCELED) {
+                    puts("at least one operation cannot be canceled");
+                } else if (ret1 == AIO_ALLDONE) {
+                    puts("all operations already completed");
+                } else {
+                    puts("aio_cancel failed, plz check errno");
+                }
+                
                 return std::string();        // Return the empty string, which
                                              // causes another check on the
                                              // termination condition in obey().
+            }
         }
 
         if ((ret2 = aio_return(&aiocb)) != -1) {
