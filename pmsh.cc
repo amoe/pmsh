@@ -1,9 +1,12 @@
+#include <iostream>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <unistd.h>
-
-#include <iostream>
+#include <time.h>
+#include <aio.h>
+#include <errno.h>
 
 #include <libprojectM/projectM.hpp>
 #include <pulse/pulseaudio.h>
@@ -41,9 +44,8 @@ int pmsh_main(int argc, char **argv) {
     
     pa = init_pulseaudio(global.pm);
 
-    global.renderer = SDL_CreateThread(render, global.pm);
-    
-    obey(global.pm);
+    global.reader = SDL_CreateThread(obey, global.pm);
+    render(global.pm);
 
     cleanup();
 
@@ -122,10 +124,8 @@ projectM *init_projectm(config cfg) {
 }
 
 
-// perform the render loop (called in thread)
-int render(void *arg) {
-    projectM *pm = (projectM *) arg;
-    
+// perform the render loop
+void render(projectM *pm) {
     while (!global.terminated) {
         handle_event();
 
@@ -136,15 +136,15 @@ int render(void *arg) {
 
         xunlock(global.mutex);
     }
-
     //puts("renderer: quitting");
-    return 0;
 }
 
 
-// take commands from user
-void obey(projectM *pm) {
-    while (!std::cin.eof()) {
+// take commands from user.  runs in separate thread.
+int obey(void *arg) {
+    projectM *pm = (projectM *) arg;
+
+    while (!global.terminated && !std::cin.eof()) {
         std::string resp = ask();
 
         // FIXME, is it right to lock here?  Some commands might not mutate
@@ -161,6 +161,8 @@ void obey(projectM *pm) {
     // Since we've exited with a ^D if we get here, output an NL to make the
     // cleanup text look prettier
     std::cout << '\n';
+
+    return 0;
 }
 
 
@@ -170,9 +172,62 @@ std::string ask() {
     std::cout << "> ";
     std::cout.flush();
 
-    getline(std::cin, line);
+    line = getline_interruptible();
+    // This line blocks, which prevents the loop from checking the terminated
+    // condition.
+    //getline(std::cin, line);
     
     return line;
+}
+
+std::string getline_interruptible() {
+    char *buf   = NULL;
+    size_t size = 0;
+    struct aiocb aiocb;
+    std::string ret;
+
+    memset(&aiocb, 0, sizeof(aiocb));
+
+    aiocb.aio_fildes = fileno(stdin);
+    aiocb.aio_offset = 0;
+    aiocb.aio_buf    = buf;
+    aiocb.aio_nbytes = 1;
+    
+    do {
+        int     c;
+        int     ret1;
+        ssize_t ret2;
+
+        aiocb.aio_buf = &c;
+
+        ret1 = aio_read(&aiocb);
+        if (ret1 != 0) {
+            perror("aio_read");
+            exit(1);
+        }
+
+        while (aio_error(&aiocb) == EINPROGRESS) {
+            minisleep();
+            if (global.terminated)
+                return std::string();        // Return the empty string, which
+                                             // causes another check on the
+                                             // termination condition in obey().
+        }
+
+        if ((ret2 = aio_return(&aiocb)) != -1) {
+            // all good
+        } else {
+            die("cannot find AIO return status: %s", strerror(errno));
+        }
+        
+        buf = (char *) realloc(buf, ++size);
+        buf[size - 1] = c;
+    } while (buf[size - 1] != '\n');
+
+    buf[size - 1] = '\0';
+    ret = buf;
+
+    return ret;
 }
 
 void act(projectM *pm, std::string line) {
@@ -186,10 +241,9 @@ void act(projectM *pm, std::string line) {
 
     switch (cmd) {
     case 'x': {
-            cleanup();
-            exit(EXIT_SUCCESS);
-            break;
-        }
+        global.terminated = true;
+        break;
+    }
 
     case 'o': {
         std::cout << "toggling lock" << '\n';
@@ -273,9 +327,8 @@ void handle_event() {
                 keypress(evt.key.keysym.sym);
                 break;
             case SDL_QUIT:
-                cleanup();
-                puts("exiting");
-                exit(0);
+                global.terminated = true;
+                break;
             default:
                 // eat this event
                 break;
@@ -289,9 +342,12 @@ void keypress(SDLKey k) {
             cmd_fullscreen();
             break;
         case SDLK_x:
-            cleanup();
-            exit(EXIT_SUCCESS);
+            global.terminated = true;
             break;
+    default:
+        // eat this event
+        break;
+            
     }
 }
 
@@ -368,58 +424,67 @@ void cleanup() {
     // WARNING: this lock MUST be released before obtaining the lock on the
     // mainloop, otherwise there's an extremely difficult to detect deadlock
     // with cb_stream_read().
+    puts("unlocking global mutex");
     xunlock(global.mutex);
 
     // This can take a few seconds, don't despair
-    //puts("requesting lock");
+    puts("requesting pulse lock");
     pa_threaded_mainloop_lock(global.threaded_mainloop);
-    //puts("got lock");
+    puts("got pulse lock");
 
     if (global.stream) {
-        //puts("disconnecting & unreffing stream");
+        puts("disconnecting & unreffing pulse stream");
         ret = pa_stream_disconnect(global.stream);
         if (ret != 0)  die_pulse("cannot disconnect pulse stream");
         pa_stream_unref(global.stream);
     }
     
     if (global.context) {
-        //puts("disconnecting context");
+        puts("disconnecting context");
         pa_context_disconnect(global.context);
-        //puts("unreffing context");
+        puts("unreffing context");
         pa_context_unref(global.context);
     }
     
-    //puts("unlocking mainloop");
+    puts("unlocking mainloop");
     pa_threaded_mainloop_unlock(global.threaded_mainloop);
 
     if (global.mainloop_api) {
-        //puts("requesting quit from api");
+        puts("requesting quit from api");
         global.mainloop_api->quit(global.mainloop_api, 0);
     }
 
-    //puts("stopping mainloop");
+    puts("stopping mainloop");
     if (global.threaded_mainloop) {
         pa_threaded_mainloop_stop(global.threaded_mainloop);
     }
 
 
-    //puts("terminating render thread");
+    puts("terminating render thread");
     global.terminated = true;
-    SDL_WaitThread(global.renderer, NULL);
+    SDL_WaitThread(global.reader, NULL);
 
     // We can only destroy the mutex after terminating the rendering thread in
     // an "almost obvious" fact
-    //puts("destroying mutex");
+    puts("destroying mutex");
     SDL_DestroyMutex(global.mutex);
 
-    //puts("deleting projectm instance");
+    puts("deleting projectm instance");
     delete global.pm;
     
-    //puts("shutting down SDL");
+    puts("shutting down SDL");
     SDL_Quit();
 
     // ;)
     std::cout << " done.\n";
+}
+
+// Sleep a small amount of time.
+void minisleep() {
+    struct timespec rqtp;
+    rqtp.tv_sec = 0;
+    rqtp.tv_nsec = 10000000;
+    nanosleep(&rqtp, NULL);
 }
 
 // FIXME: needs to be rewritten in C++ style

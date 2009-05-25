@@ -1,3 +1,4 @@
+// FIXME: why is this located in pulse.hh?
 struct state {
     bool                 terminated;
     bool                 fullscreen;
@@ -5,7 +6,7 @@ struct state {
     int                  window_height;
     projectM             *pm;
     SDL_mutex            *mutex;
-    SDL_Thread           *renderer;
+    SDL_Thread           *reader;
     pa_threaded_mainloop *threaded_mainloop;
     pa_mainloop_api      *mainloop_api;
     pa_context           *context;

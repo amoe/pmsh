@@ -54,7 +54,7 @@ LINK_DIRECTORIES(${PROJECTM_LINK} ${LIBPULSE_LDFLAGS})
 
 SET(
     PMSH_LIBS
-    projectM pulse ${SDL_LIBRARY}
+    projectM pulse rt ${SDL_LIBRARY}
 )
 
 TARGET_LINK_LIBRARIES(pmsh ${PMSH_LIBS})

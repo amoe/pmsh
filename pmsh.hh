@@ -6,13 +6,13 @@ struct config {
 
 int pmsh_main(int argc, char **argv);
 
-void obey(projectM *pm);
+int obey(void *arg);
 std::string ask();
 void act(projectM *pm, std::string line);
 
 void move(projectM *pm, int increment);
 
-int render(void *arg);
+void render(projectM *pm);
 void xlock(SDL_mutex *mutex);
 void xunlock(SDL_mutex *mutex);
 void fatal();
@@ -30,6 +30,9 @@ std::string find_config();
 
 const char *error_playlist_invalid();
 void keypress(SDLKey k);
+
+std::string getline_interruptible();
+void minisleep();
 
 void warn(const char *format, ...);
 void die(const char *format, ...);
