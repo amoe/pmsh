@@ -105,7 +105,8 @@ void init_sdl(config cfg) {
    SDL_Surface *ctx;
     int ret;
 
-    ret = SDL_Init(SDL_INIT_VIDEO);
+    // We don't want SDL to catch our segfaults
+    ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
     if (ret == -1)  die("cannot initialize SDL: %s", SDL_GetError());
 
     ctx = SDL_SetVideoMode(cfg.width, cfg.height, 0, SDL_OPENGL);
