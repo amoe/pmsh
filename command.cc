@@ -14,6 +14,7 @@
 #include "command.hh"
 #include "pmsh.hh"
 
+
 void cmd_next(projectM *pm) {
     move(pm, +1);
 }
@@ -26,8 +27,8 @@ void cmd_load(projectM *pm, std::string path) {
     std::cout << "loading file: " << path << '\n';
 
     try {
-        // must use 3 or crash
-        int idx = pm->addPresetURL(path, "current", 3);
+        // just here to pacify the code; apparently 3 is mandatory
+        int idx = pm->addPresetURL(path, "current", global.rating);
         pm->selectPreset(idx);
         pm->setPresetLock(true);
     } catch (int e) {
@@ -46,7 +47,7 @@ void cmd_dir(projectM *pm, std::string path) {
         std::string abs = path + "/" + de->d_name;
         std::cout << abs << '\n';
 
-        pm->addPresetURL(abs, "cmd_dir", 3);
+        pm->addPresetURL(abs, "cmd_dir", global.rating);
     }
 
     ret = closedir(dir);

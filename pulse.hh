@@ -5,6 +5,7 @@ struct state {
     int                  window_width;
     int                  window_height;
     projectM             *pm;
+    RatingList           rating;
     SDL_mutex            *mutex;
     SDL_Thread           *reader;
     pa_threaded_mainloop *threaded_mainloop;

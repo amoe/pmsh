@@ -118,8 +118,12 @@ void init_sdl(config cfg) {
 
 projectM *init_projectm(config cfg) {
     projectM *ret;
+    int rating = 3;
+    int breedability = 3;
 
     ret = new projectM(config_path, 0);
+    global.rating.push_back(rating);
+    global.rating.push_back(breedability);
     
     return ret;
 }
