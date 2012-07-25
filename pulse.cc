@@ -74,6 +74,9 @@ void cb_context_source_info_list(
     //puts("source info");
 
     if (!eol && is_monitor_source(i->name)) {
+        //printf("Spec: %d\n", i->sample_spec.format);
+        //printf("Spec: %d\n", PA_SAMPLE_FLOAT32LE);
+
         global.stream = pa_stream_new(
             c, "input", &(i->sample_spec), &(i->channel_map)
         );
@@ -99,9 +102,12 @@ void cb_stream_read(pa_stream *p, size_t bytes, void *userdata) {
     ret = pa_stream_drop(p);
     if (ret != 0) die_pulse("cannot drop pulse stream data");
 
-    xlock(global.mutex);
-    pm->pcm()->addPCMfloat((float *) data, bytes / (sizeof(float)));
-    xunlock(global.mutex);
+    // Here we wrongly assume that we're getting shorts from the monitor source.
+    // This is far from guaranteed.
+    //printf("wrote %d bytes\n", bytes);
+    //xlock(global.mutex);
+    global.pm->pcm()->addPCM16Data((short *) data, bytes / (sizeof(short)));
+    //xunlock(global.mutex);
 }
 
 bool is_monitor_source(const char *name) {
