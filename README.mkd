@@ -41,16 +41,16 @@ HOW TO USE PMSH
 Commands are one letter, A-Z.  A few take an argument separated by a space.
 Any whitespace before a command is ignored.
 
-x           exit
-o           toggle preset lock on or off (stops preset switching automatically)
-n           next preset in playlist
-p           previous preset in playlist
-r           reload current preset from file
-c           clear playlist
-i           print some debugging information on the current state
-f           switch to fullscreen (unimplemented)
-l <file>    load preset from <file>
-d <dir>     load all presets from <dir> into playlist
+    x           exit
+    o           toggle preset lock on or off (stops preset switching automatically)
+    n           next preset in playlist
+    p           previous preset in playlist
+    r           reload current preset from file
+    c           clear playlist
+    i           print some debugging information on the current state
+    f           switch to fullscreen (unimplemented)
+    l <file>    load preset from <file>
+    d <dir>     load all presets from <dir> into playlist
 
 Arguments don't need internal whitespace quoted, the whole rest of the line is
 treated as the argument.  This allows you to more easily load traditional-ish
