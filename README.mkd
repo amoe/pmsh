@@ -1,5 +1,8 @@
 WHAT IS IT?
 -----------
+
+HUGE NB: THIS PROGRAM CURRENTLY REQUIRES AN OBSOLETE VERSION OF PROJECTM
+
 It's a small program that takes commands in text mode and allows basic
 manipulation of projectM.  The idea is to let you develop presets using a
 standard text editor like Emacs, the same way you would use something like 'M-x
@@ -13,10 +16,12 @@ ever manage to achieve this dream, send me a screenshot.  :)
 
 REQUIREMENTS
 ------------
-emacs 22 (not checked by cmake)
-pulseaudio
-libprojectM (branch version, or 1.2.0 - not represet/2.*)
-SDL
+
+* emacs 22 (not checked by cmake)
+* pulseaudio
+* libprojectM (branch version, or 1.2.0 - not represet/2.*)
+* SDL
+
 
 
 FIRST
